@@ -1,0 +1,33 @@
+services:
+  # ── Hosted Checkout (PHP) ──────────────────────────────────────────
+  hosted-checkout:
+    build: ./hosted-checkout-example
+    container_name: ghion-hosted-checkout
+    ports:
+      - "3001:80"
+    env_file: .env
+    volumes:
+      - ./.env:/var/www/html/.env:ro
+    restart: unless-stopped
+
+  # ── Embedded Checkout (Node.js) ────────────────────────────────────
+  embedded-checkout:
+    build: ./embedded-checkout-example
+    container_name: ghion-embedded-checkout
+    ports:
+      - "3002:3002"
+    env_file: .env
+    environment:
+      - PORT=3002
+    restart: unless-stopped
+
+  # ── API-Only (Node.js) ────────────────────────────────────────────
+  api-only:
+    build: ./api-only-example
+    container_name: ghion-api-only
+    ports:
+      - "3003:3003"
+    env_file: .env
+    environment:
+      - PORT=3003
+    restart: unless-stopped

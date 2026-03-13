@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API-Only Integration Example</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; }
+    .container { max-width: 520px; margin: 0 auto; padding: 2rem; }
+    h1 { font-size: 1.5rem; font-weight: 700; }
+    .subtitle { color: #64748b; margin-top: 0.25rem; font-size: 0.9rem; }
+    .step { margin-top: 2rem; }
+    .step-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
+    .card { background: #fff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem; }
+    input, select { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; margin-bottom: 0.75rem; }
+    input:focus, select:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79,70,229,0.15); }
+    .btn { display: block; width: 100%; padding: 0.65rem; border: none; border-radius: 8px; background: #4f46e5; color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+    .btn:hover { background: #4338ca; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-outline { background: transparent; border: 1px solid #e2e8f0; color: #1e293b; }
+    .btn-outline:hover { background: #f1f5f9; }
+    .btn-outline.selected { border-color: #4f46e5; background: #eef2ff; color: #4f46e5; }
+    .channels { display: grid; gap: 0.5rem; margin-bottom: 1rem; }
+    .channel-btn { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; text-align: left; }
+    .channel-name { font-weight: 600; font-size: 0.9rem; }
+    .channel-type { font-size: 0.75rem; color: #64748b; }
+    .hidden { display: none; }
+    .status { padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.9rem; }
+    .status.success { background: #ecfdf5; color: #065f46; }
+    .status.error { background: #fef2f2; color: #991b1b; }
+    .status.processing { background: #eff6ff; color: #1e40af; }
+    .status.pending { background: #fffbeb; color: #92400e; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 0.5rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    footer { margin-top: 3rem; text-align: center; font-size: 0.8rem; color: #94a3b8; }
+    .info { margin-top: 1.5rem; padding: 0.75rem 1rem; background: #eef2ff; border-radius: 8px; font-size: 0.8rem; color: #3730a3; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>API-Only Integration</h1>
+    <p class="subtitle">Full control over the payment UI — you build the form, we process the payment.</p>
+
+    <!-- Step 1: Initialize -->
+    <div id="step-init" class="step">
+      <div class="step-title">Step 1 — Create Payment</div>
+      <div class="card">
+        <label for="amount">Amount (ETB)</label>
+        <input type="number" id="amount" value="500" min="1" step="0.01">
+        <label for="description">Description</label>
+        <input type="text" id="description" value="Test Payment" placeholder="What is this payment for?">
+        <button class="btn" id="btn-init" onclick="initialize()">Initialize Payment</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Choose Channel -->
+    <div id="step-channels" class="step hidden">
+      <div class="step-title">Step 2 — Choose Payment Method</div>
+      <div class="card">
+        <div id="channels" class="channels"></div>
+        <div id="channel-fields"></div>
+        <button class="btn" id="btn-pay" onclick="pay()" disabled>Submit Payment</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Status -->
+    <div id="step-status" class="step hidden">
+      <div class="step-title">Step 3 — Payment Status</div>
+      <div id="status-box" class="card"></div>
+    </div>
+
+    <div class="info">
+      <strong>How it works:</strong> Your server calls the Ghion API directly at every step.
+      You control the entire UI — channel selection, input fields, status display.
+      No SDK or iframe needed.
+    </div>
+
+    <footer>Ghion Finances — API-Only Integration Example</footer>
+  </div>
+
+  <script>
+    let paymentId = null;
+    let selectedChannel = null;
+
+    async function initialize() {
+      const btn = document.getElementById("btn-init");
+      btn.disabled = true;
+      btn.textContent = "Creating…";
+
+      try {
+        const res = await fetch("/api/initialize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: parseFloat(document.getElementById("amount").value),
+            currency: "ETB",
+            description: document.getElementById("description").value,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to initialize");
+        }
+
+        const data = await res.json();
+        paymentId = data.id;
+        renderChannels(data.available_channels || []);
+        document.getElementById("step-channels").classList.remove("hidden");
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Initialize Payment";
+      }
+    }
+
+    function renderChannels(channels) {
+      const container = document.getElementById("channels");
+      container.innerHTML = "";
+
+      if (channels.length === 0) {
+        container.innerHTML = '<p style="color:#64748b;font-size:0.85rem;">No payment channels available.</p>';
+        return;
+      }
+
+      channels.forEach((ch) => {
+        const btn = document.createElement("button");
+        btn.className = "btn btn-outline channel-btn";
+        btn.innerHTML = `<div><div class="channel-name">${ch.name}</div><div class="channel-type">${ch.type}</div></div>`;
+        btn.onclick = () => selectChannel(ch, btn);
+        container.appendChild(btn);
+      });
+    }
+
+    function selectChannel(channel, btnEl) {
+      selectedChannel = channel;
+      document.querySelectorAll(".channel-btn").forEach((b) => b.classList.remove("selected"));
+      btnEl.classList.add("selected");
+
+      const fields = document.getElementById("channel-fields");
+      fields.innerHTML = "";
+
+      // Render required fields based on channel type
+      if (channel.type === "mobile" || channel.type === "mobile_money" || channel.type === "ussd") {
+        fields.innerHTML = `
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" placeholder="0911234567">
+        `;
+      } else if (channel.type === "bank") {
+        fields.innerHTML = `
+          <label for="account">Account Number</label>
+          <input type="text" id="account" placeholder="1000123456789">
+        `;
+      }
+
+      document.getElementById("btn-pay").disabled = false;
+    }
+
+    async function pay() {
+      if (!selectedChannel || !paymentId) return;
+
+      const btn = document.getElementById("btn-pay");
+      btn.disabled = true;
+      btn.textContent = "Submitting…";
+
+      const body = { channel: selectedChannel.code };
+      const phoneEl = document.getElementById("phone");
+      const accountEl = document.getElementById("account");
+      if (phoneEl) body.phoneNumber = phoneEl.value;
+      if (accountEl) body.accountNumber = accountEl.value;
+
+      try {
+        const res = await fetch(`/api/pay/${paymentId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Payment submission failed");
+        }
+
+        const data = await res.json();
+        document.getElementById("step-status").classList.remove("hidden");
+        showStatus(data.status || "processing");
+
+        // Start polling if not terminal
+        if (data.status !== "completed" && data.status !== "failed") {
+          pollStatus();
+        }
+      } catch (err) {
+        document.getElementById("step-status").classList.remove("hidden");
+        showStatus("error", err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Submit Payment";
+      }
+    }
+
+    function showStatus(status, message) {
+      const box = document.getElementById("status-box");
+      const labels = {
+        completed: { cls: "success", text: "Payment completed successfully!" },
+        failed: { cls: "error", text: message || "Payment failed." },
+        error: { cls: "error", text: message || "An error occurred." },
+        processing: { cls: "processing", text: '<span class="spinner"></span>Processing — waiting for confirmation…' },
+        pending: { cls: "pending", text: '<span class="spinner"></span>Pending — customer action required…' },
+        requires_action: { cls: "pending", text: '<span class="spinner"></span>Waiting for customer to approve on their phone…' },
+      };
+      const info = labels[status] || labels.processing;
+      box.className = "card status " + info.cls;
+      box.innerHTML = info.text;
+    }
+
+    async function pollStatus() {
+      for (let i = 0; i < 30; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        try {
+          const res = await fetch(`/api/status/${paymentId}`);
+          const data = await res.json();
+          const s = data.status;
+          showStatus(s);
+          if (s === "completed" || s === "failed") return;
+        } catch {
+          // keep polling
+        }
+      }
+      showStatus("error", "Timed out waiting for payment confirmation. Check your dashboard.");
+    }
+  </script>
+</body>
+</html>

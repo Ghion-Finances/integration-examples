@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Embedded Checkout Example</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; }
+    .container { max-width: 800px; margin: 0 auto; padding: 2rem; }
+    h1 { font-size: 1.5rem; font-weight: 700; }
+    .subtitle { color: #64748b; margin-top: 0.25rem; }
+    .products { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+    .card { background: #fff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card h3 { font-size: 1rem; }
+    .card .price { font-size: 1.25rem; font-weight: 700; color: #4f46e5; margin: 0.5rem 0; }
+    .card .desc { font-size: 0.85rem; color: #64748b; margin-bottom: 1rem; }
+    .btn { display: inline-block; width: 100%; padding: 0.6rem; border: none; border-radius: 8px; background: #4f46e5; color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; text-align: center; }
+    .btn:hover { background: #4338ca; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .info { margin-top: 2rem; padding: 1rem; background: #eef2ff; border-radius: 8px; font-size: 0.85rem; color: #3730a3; }
+    #result { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; display: none; font-size: 0.9rem; }
+    #result.success { display: block; background: #ecfdf5; color: #065f46; }
+    #result.error { display: block; background: #fef2f2; color: #991b1b; }
+    footer { margin-top: 3rem; text-align: center; font-size: 0.8rem; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Embedded Checkout Example</h1>
+    <p class="subtitle">Payment modal opens on your page — no redirect needed.</p>
+
+    <div class="products">
+      <div class="card">
+        <h3>Basic Plan</h3>
+        <div class="price">250 ETB</div>
+        <p class="desc">Monthly subscription with basic features</p>
+        <button class="btn" onclick="pay(250, 'Basic Plan')">Pay Now</button>
+      </div>
+      <div class="card">
+        <h3>Pro Plan</h3>
+        <div class="price">750 ETB</div>
+        <p class="desc">All features, priority support</p>
+        <button class="btn" onclick="pay(750, 'Pro Plan')">Pay Now</button>
+      </div>
+      <div class="card">
+        <h3>Enterprise</h3>
+        <div class="price">2,500 ETB</div>
+        <p class="desc">Custom solutions, dedicated account manager</p>
+        <button class="btn" onclick="pay(2500, 'Enterprise Plan')">Pay Now</button>
+      </div>
+    </div>
+
+    <div id="result"></div>
+
+    <div class="info">
+      <strong>How it works:</strong> Click "Pay Now" → your server creates a checkout session →
+      the Ghion SDK opens a modal on this page → customer pays without leaving your site.
+    </div>
+
+    <footer>Ghion Finances — Embedded Checkout Example</footer>
+  </div>
+
+  <!-- Ghion SDK — loaded from the gateway -->
+  <script src="https://ghion.financial/sdk/checkout.js?v=2024031301"></script>
+  <script>
+    async function pay(amount, description) {
+      const resultEl = document.getElementById("result");
+      resultEl.style.display = "none";
+
+      // 1. Create session on your server (never expose API keys client-side)
+      const res = await fetch("/api/create-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, currency: "ETB", description }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        resultEl.className = "error";
+        resultEl.textContent = "Error: " + (err.error || "Could not create session");
+        resultEl.style.display = "block";
+        return;
+      }
+
+      const { sessionId } = await res.json();
+      
+      if (!sessionId) {
+        resultEl.className = "error";
+        resultEl.textContent = "Error: No session ID received from server";
+        resultEl.style.display = "block";
+        return;
+      }
+
+      // 2. Open the embedded checkout modal
+      Ghion.checkout({
+        sessionId,
+        theme: { primaryColor: "#4f46e5" },
+
+        onSuccess(data) {
+          resultEl.className = "success";
+          resultEl.innerHTML =
+            "<strong>Payment successful!</strong><br>" +
+            "Transaction: " + data.transaction_id + "<br>" +
+            "Amount: " + data.amount + " " + data.currency;
+          resultEl.style.display = "block";
+        },
+
+        onFailure(error) {
+          resultEl.className = "error";
+          resultEl.textContent = "Payment failed: " + error.message;
+          resultEl.style.display = "block";
+        },
+
+        onClose() {
+          // Checkout modal closed
+        },
+      });
+    }
+  </script>
+</body>
+</html>

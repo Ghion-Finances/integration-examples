@@ -1,0 +1,13 @@
+{
+  "name": "api-only-example",
+  "version": "1.0.0",
+  "description": "API-only integration example — full control over the payment UI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
