@@ -17,13 +17,13 @@ class Client
     private HttpClient $httpClient;
     private string $apiKey;
     private string $apiSecret;
-    private ?string $passphrase;
+    private string $passphrase;
     private LoggerInterface $logger;
 
     public function __construct(
         string $apiKey,
         string $apiSecret,
-        ?string $passphrase = null,
+        string $passphrase,
         string $baseUrl = 'https://ghion.financial/api/v1',
         ?LoggerInterface $logger = null
     ) {

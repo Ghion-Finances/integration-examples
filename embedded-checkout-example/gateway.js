@@ -17,18 +17,13 @@ function authHeaders(method, path, body = "") {
   const timestamp = Math.floor(Date.now() / 1000); // Convert to seconds
   const signature = generateSignature(timestamp, method, path, body);
 
-  const headers = {
+  return {
     "Content-Type": "application/json",
     "X-Ghion-Key": API_KEY,
     "X-Ghion-Timestamp": String(timestamp),
     "X-Ghion-Signature": signature,
+    "X-Ghion-Passphrase": PASSPHRASE,
   };
-
-  if (PASSPHRASE) {
-    headers["X-Ghion-Passphrase"] = PASSPHRASE;
-  }
-
-  return headers;
 }
 
 async function createCheckoutSession({ amount, currency, description, reference, returnUrl, webhookUrl }) {

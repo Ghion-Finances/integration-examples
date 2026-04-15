@@ -88,7 +88,9 @@ Headers sent with every API request:
 | `X-Ghion-Key` | Your API key |
 | `X-Ghion-Timestamp` | Unix timestamp (seconds) |
 | `X-Ghion-Signature` | HMAC-SHA256 signature |
-| `X-Ghion-Passphrase` | Passphrase (if set) |
+| `X-Ghion-Passphrase` | Your API passphrase |
+
+**Note:** The timestamp must be within **30 seconds** of the server time. Ensure your system clock is synchronized via NTP.
 
 ## API Endpoints Used
 

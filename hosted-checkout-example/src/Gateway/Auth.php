@@ -39,7 +39,7 @@ class Auth
      * @param string $method HTTP method
      * @param string $path API endpoint path
      * @param string $body Request body
-     * @param string|null $passphrase Optional passphrase
+     * @param string $passphrase API passphrase
      * @return array<string, string> Headers array
      */
     public static function generateAuthHeaders(
@@ -48,22 +48,17 @@ class Auth
         string $method,
         string $path,
         string $body = '',
-        ?string $passphrase = null
+        string $passphrase = ''
     ): array {
         $timestamp = (int)time();
         $signature = self::generateSignature($timestamp, $method, $path, $body, $apiSecret);
 
-        $headers = [
+        return [
             'X-Ghion-Key' => $apiKey,
             'X-Ghion-Timestamp' => (string)$timestamp,
             'X-Ghion-Signature' => $signature,
+            'X-Ghion-Passphrase' => $passphrase,
         ];
-
-        if ($passphrase !== null) {
-            $headers['X-Ghion-Passphrase'] = $passphrase;
-        }
-
-        return $headers;
     }
 
     /**
