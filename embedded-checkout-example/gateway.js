@@ -2,6 +2,8 @@ const crypto = require("crypto");
 
 const API_KEY = process.env.GHION_API_KEY;
 const API_SECRET = process.env.GHION_API_SECRET;
+// PASSPHRASE: Use the raw value shown when you generated credentials.
+// Do NOT base64-encode it - the API expects the raw passphrase.
 const PASSPHRASE = process.env.GHION_API_PASSPHRASE;
 const BASE_URL = process.env.GHION_BASE_URL || "https://ghion.financial/api/v1";
 
@@ -50,11 +52,21 @@ async function createCheckoutSession({ amount, currency, description, reference,
   return json;
 }
 
-function verifyWebhookSignature(payload, signature) {
+/**
+ * Verify webhook signature
+ * The signature is computed on the raw request body (industry-standard approach).
+ * Always verify BEFORE parsing JSON to ensure byte-exact comparison.
+ *
+ * @param {string|Buffer} rawBody - Raw request body from webhook
+ * @param {string} signature - Signature from X-Ghion-Signature header
+ * @returns {boolean} True if signature is valid
+ */
+function verifyWebhookSignature(rawBody, signature) {
   const expected = crypto
     .createHmac("sha256", API_SECRET)
-    .update(payload)
+    .update(rawBody)
     .digest("base64");
+
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
 

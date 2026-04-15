@@ -59,22 +59,29 @@ app.get("/api/status/:paymentId", async (req, res) => {
   }
 });
 
-// Webhook handler
+// Webhook handler - use raw body for signature verification
 app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
   const signature = req.headers["x-ghion-signature"];
-  const payload = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+  if (!signature) {
+    return res.status(400).json({ error: "Missing signature" });
+  }
 
-  if (!signature) return res.status(400).json({ error: "Missing signature" });
+  // req.body is a Buffer when using express.raw()
+  const rawBody = req.body;
 
   try {
-    if (!verifyWebhookSignature(payload, signature)) {
+    if (!verifyWebhookSignature(rawBody, signature)) {
       return res.status(401).json({ error: "Invalid signature" });
     }
-  } catch {
+  } catch (err) {
+    console.error("Signature verification error:", err);
     return res.status(401).json({ error: "Signature verification failed" });
   }
 
-  const event = JSON.parse(payload);
+  // Parse after verification
+  const event = JSON.parse(rawBody.toString());
+  console.log("Webhook received:", event.event, event.data?.transaction_id);
+
   res.json({ received: true });
 });
 

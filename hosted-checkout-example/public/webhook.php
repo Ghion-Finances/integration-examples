@@ -50,14 +50,13 @@ if (!is_array($data)) {
 }
 
 $logger->info('Webhook verified', [
-    'event_type' => $data['type'] ?? 'unknown',
-    'event_id' => $data['id'] ?? null,
+    'event_type' => $data['event'] ?? 'unknown',
 ]);
 
 // Process webhook event
 try {
-    $eventType = $data['type'] ?? null;
-    $transaction = $data['data']['transaction'] ?? null;
+    $eventType = $data['event'] ?? null;
+    $transaction = $data['data'] ?? null;
 
     if (!$transaction) {
         throw new Exception('Transaction data missing from webhook');
@@ -65,7 +64,7 @@ try {
 
     $logger->info('Processing webhook event', [
         'event_type' => $eventType,
-        'transaction_id' => $transaction['id'] ?? null,
+        'transaction_id' => $transaction['transaction_id'] ?? null,
         'status' => $transaction['status'] ?? null,
         'reference' => $transaction['reference'] ?? null,
     ]);
@@ -110,7 +109,7 @@ try {
 function handleTransactionCompleted(array $transaction, Logger $logger): void
 {
     $logger->info('Transaction completed', [
-        'transaction_id' => $transaction['id'],
+        'transaction_id' => $transaction['transaction_id'],
         'reference' => $transaction['reference'],
         'amount' => $transaction['amount'],
     ]);
@@ -143,7 +142,7 @@ function handleTransactionCompleted(array $transaction, Logger $logger): void
 function handleTransactionFailed(array $transaction, Logger $logger): void
 {
     $logger->warning('Transaction failed', [
-        'transaction_id' => $transaction['id'],
+        'transaction_id' => $transaction['transaction_id'],
         'reference' => $transaction['reference'],
     ]);
 
@@ -159,7 +158,7 @@ function handleTransactionFailed(array $transaction, Logger $logger): void
 function handleTransactionPending(array $transaction, Logger $logger): void
 {
     $logger->info('Transaction pending', [
-        'transaction_id' => $transaction['id'],
+        'transaction_id' => $transaction['transaction_id'],
         'reference' => $transaction['reference'],
     ]);
 

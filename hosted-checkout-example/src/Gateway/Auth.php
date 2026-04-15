@@ -39,7 +39,7 @@ class Auth
      * @param string $method HTTP method
      * @param string $path API endpoint path
      * @param string $body Request body
-     * @param string $passphrase API passphrase
+     * @param string $passphrase API passphrase (use the RAW value shown when generated, do NOT base64-encode)
      * @return array<string, string> Headers array
      */
     public static function generateAuthHeaders(
@@ -64,20 +64,21 @@ class Auth
     /**
      * Verify webhook signature
      *
-     * @param string $payload Webhook payload (raw JSON string)
+     * The signature is computed on the raw request body (industry-standard approach).
+     * Always verify BEFORE parsing JSON to ensure byte-exact comparison.
+     *
+     * @param string $rawBody Raw webhook payload (before JSON parsing)
      * @param string $signature Signature from X-Ghion-Signature header
      * @param string $secret API secret
      * @return bool True if signature is valid
      */
     public static function verifyWebhookSignature(
-        string $payload,
+        string $rawBody,
         string $signature,
         string $secret
     ): bool {
-        $expectedSignature = base64_encode(
-            hash_hmac('sha256', $payload, $secret, true)
-        );
+        $expected = base64_encode(hash_hmac('sha256', $rawBody, $secret, true));
 
-        return hash_equals($expectedSignature, $signature);
+        return hash_equals($expected, $signature);
     }
 }
