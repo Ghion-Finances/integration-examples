@@ -12,7 +12,7 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 // Load environment variables
-$dotenv = Dotenv::createImmutable(__DIR__ . '/..', ['.env', '../.env']);
+$dotenv = Dotenv::createImmutable(__DIR__, ['.env', '../.env']);
 $dotenv->load();
 
 // Setup logger
