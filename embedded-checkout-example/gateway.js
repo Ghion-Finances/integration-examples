@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+require("dotenv").config();
 
 const API_KEY = process.env.GHION_API_KEY;
 const API_SECRET = process.env.GHION_API_SECRET;
