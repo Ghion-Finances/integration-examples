@@ -169,8 +169,8 @@
       const body = { channel: selectedChannel.code };
       const phoneEl = document.getElementById("phone");
       const accountEl = document.getElementById("account");
-      if (phoneEl) body.phoneNumber = phoneEl.value;
-      if (accountEl) body.accountNumber = accountEl.value;
+      if (phoneEl) body.phone_number = phoneEl.value;
+      if (accountEl) body.account_number = accountEl.value;
 
       try {
         const res = await fetch(`/api/pay/${paymentId}`, {
